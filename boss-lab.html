@@ -1146,13 +1146,53 @@ function hintFor(cow){
   }
   var key,text;
   if(pick==='horns'){key=f.horns?'HORNS':'NO HORNS';text=f.horns?'Check the head. This one has horns.':'No horns. Lookalikes nearby have them.'}
-  else if(pick==='acc'){key=f.acc==='bell'?'BRASS BELL':f.acc==='ribbon'?'PINK RIBBON':'BARE NECK';text=f.acc==='bell'?'Brass bell at the neck.':f.acc==='ribbon'?'Pink ribbon tied at the neck.':'Nothing round its neck. No bell, no ribbon.'}
-  else if(pick==='pattern'){key='THE SPOTS';text='Lookalikes are out there. Match the spot pattern.'}
+  else if(pick==='acc'){key=f.acc==='bell'?'BRASS BELL':f.acc==='ribbon'?'PINK BOW':'BARE NECK';text=f.acc==='bell'?'Brass bell on a leather strap.':f.acc==='ribbon'?'Big pink bow tied at the neck.':'Nothing round its neck. No bell, no bow.'}
+  else if(pick==='pattern'){key=PATTERN_NAMES[f.pattern].toUpperCase();text='Lookalikes are out there. Look for the '+PATTERN_NAMES[f.pattern].toLowerCase()+'.'}
   else{key=coatName.toUpperCase()+' COAT';text='The coat colour is the giveaway.'}
   return{odd:false,key:key,text:text,swatch:coatColors[f.coat].v};
 }
 
 /* ================= DRAWING: COW ================= */
+/* 14 designed coat markings (no more random splotches): each one reads at a glance and has a name
+   used by the WANTED hints and the bestiary. Drawn clipped to the body in the coat's marking colour. */
+var PATTERN_NAMES=['Holstein patches','Saddle','Belt','Polka dots','Bullseye','Tiger stripes','Diagonal stripes','Heart','Star','Half coat','Speckles','Rings','Checkers','Lightning bolt'];
+function blobPath(g,cx,cy,r,seed){var rr=mulberry32(seed),n=8,pts=[];for(var i=0;i<n;i++){var a=i/n*Math.PI*2,d=r*(.72+rr()*.5);pts.push([cx+Math.cos(a)*d*1.25,cy+Math.sin(a)*d*.85])}
+  g.moveTo((pts[0][0]+pts[n-1][0])/2,(pts[0][1]+pts[n-1][1])/2);for(i=0;i<n;i++){var a2=pts[i],b2=pts[(i+1)%n];g.quadraticCurveTo(a2[0],a2[1],(a2[0]+b2[0])/2,(a2[1]+b2[1])/2)}g.closePath()}
+function drawPattern(g,pat,coat,s){
+  g.save();g.beginPath();g.ellipse(-3,0,39.5,23.5,0,0,Math.PI*2);g.clip();
+  g.fillStyle=coat.s;g.strokeStyle=coat.s;g.lineJoin='round';g.lineCap='round';
+  var i,j,x,y;
+  switch(pat%14){
+    case 0: g.beginPath();blobPath(g,-24,-7,11,11);blobPath(g,1,7,12,23);blobPath(g,15,-12,7,37);g.fill();break; // Holstein patches
+    case 1: g.beginPath();g.ellipse(-3,-27,24,24,0,0,Math.PI*2);g.fill();break;                                   // saddle draped over the back
+    case 2: g.fillRect(-11,-30,18,60);break;                                                                     // belt
+    case 3: g.beginPath();for(j=-2;j<=2;j++)for(i=-4;i<=4;i++){x=i*10+(j%2?5:0)-3;y=j*9;g.moveTo(x+3.4,y);g.arc(x,y,3.4,0,Math.PI*2)}g.fill();break; // polka
+    case 4: g.beginPath();g.arc(-8,1,15,0,Math.PI*2);g.fill();g.fillStyle=coat.v;g.beginPath();g.arc(-8,1,9,0,Math.PI*2);g.fill();g.fillStyle=coat.s;g.beginPath();g.arc(-8,1,4,0,Math.PI*2);g.fill();break; // bullseye
+    case 5: g.lineWidth=4.5;g.beginPath();for(i=0;i<5;i++){x=-32+i*14;g.moveTo(x,-28);g.quadraticCurveTo(x+6,-12,x-1,2);g.quadraticCurveTo(x-4,8,x+1,12)}g.stroke();break; // tiger stripes from the spine
+    case 6: g.lineWidth=6;g.beginPath();for(i=-3;i<=3;i++){x=i*14;g.moveTo(x-16,26);g.lineTo(x+16,-26)}g.stroke();break; // diagonal stripes
+    case 7: g.beginPath();x=-7;y=-3;g.moveTo(x,y+15);g.bezierCurveTo(x-18,y+3,x-14,y-12,x,y-4);g.bezierCurveTo(x+14,y-12,x+18,y+3,x,y+15);g.fill();break; // heart
+    case 8: g.beginPath();for(i=0;i<10;i++){var a=-Math.PI/2+i*Math.PI/5,r=i%2?6.5:15;g.lineTo(-6+Math.cos(a)*r,1+Math.sin(a)*r)}g.closePath();g.fill();break; // star
+    case 9: g.beginPath();g.moveTo(-50,-30);g.lineTo(-8,-30);for(y=-30;y<=30;y+=6)g.lineTo(-8+((y/6)%2?4:-4),y);g.lineTo(-50,30);g.closePath();g.fill();break; // half coat (rear)
+    case 10: var rr=mulberry32(4242);g.beginPath();for(i=0;i<48;i++){x=-40+(i%8)*9.5+rr()*6;y=-21+Math.floor(i/8)*8+rr()*5;var rad=1.2+rr()*1.3;g.moveTo(x+rad,y);g.arc(x,y,rad,0,Math.PI*2)}g.fill();break; // speckles
+    case 11: g.lineWidth=3.6;g.beginPath();[[-27,-5],[-7,9],[12,-8]].forEach(function(c){g.moveTo(c[0]+7,c[1]);g.arc(c[0],c[1],7,0,Math.PI*2)});g.stroke();break; // rings
+    case 12: for(j=-3;j<=3;j++)for(i=-6;i<=5;i++)if((i+j)%2===0)g.fillRect(i*8,j*8,8,8);break; // checkers
+    case 13: g.beginPath();g.moveTo(-22,-26);g.lineTo(-2,-26);g.lineTo(-10,-4);g.lineTo(6,-4);g.lineTo(-18,26);g.lineTo(-12,4);g.lineTo(-26,4);g.closePath();g.fill();break; // lightning bolt
+  }
+  g.restore();
+}
+// Big, bulky horns: a thick curved cone with a dark tip and growth ridges, mirrored per side
+function drawHorn(g,bx,by,side,size,s){
+  g.save();g.translate(bx,by);g.scale(side*size,size);g.lineJoin='round';
+  g.beginPath();g.moveTo(-6,1);g.lineTo(7,1);g.quadraticCurveTo(22,-1,23,-15);g.quadraticCurveTo(24,-25,15,-31);
+  g.quadraticCurveTo(14,-21,10,-14);g.quadraticCurveTo(4,-6,-6,1);g.closePath();
+  g.fillStyle='#f5d27e';g.fill();
+  g.save();g.clip();g.fillStyle='#c9953a';g.beginPath();g.moveTo(10,-19);g.quadraticCurveTo(22,-22,24,-14);g.lineTo(24,-40);g.lineTo(8,-40);g.closePath();g.fill();
+  g.strokeStyle='rgba(120,80,20,.55)';g.lineWidth=1.6/(s*size);g.beginPath();g.moveTo(-2,-2);g.lineTo(8,-4);g.moveTo(3,-6);g.lineTo(13,-8);g.stroke();
+  g.fillStyle='rgba(255,255,255,.45)';g.beginPath();g.ellipse(9,-6,5,1.6,-.5,0,Math.PI*2);g.fill();g.restore();
+  g.beginPath();g.moveTo(-6,1);g.lineTo(7,1);g.quadraticCurveTo(22,-1,23,-15);g.quadraticCurveTo(24,-25,15,-31);g.quadraticCurveTo(14,-21,10,-14);g.quadraticCurveTo(4,-6,-6,1);g.closePath();
+  g.strokeStyle='#161616';g.lineWidth=2.8/(s*size);g.stroke();
+  g.restore();
+}
 function drawCow(g,cow,x,y,s,now,portrait){
   var f=cow.f,coat=coatColors[f.coat],dir=f.flip?-1:1;
   var hop=cow.hop>0?Math.sin(cow.hop*Math.PI)*-14:0;
@@ -1169,13 +1209,31 @@ function drawCow(g,cow,x,y,s,now,portrait){
   var wag=portrait?0:Math.sin(now*.006+cow.phase)*4;
   g.beginPath();g.moveTo(-37,0);g.quadraticCurveTo(-52,-10+wag,-46,18);g.stroke();
   g.fillStyle='#161616';g.beginPath();g.ellipse(-46,21,5,8,-.3,0,Math.PI*2);g.fill();
-  var legs=f.anomaly==='extra_limbs'?[-28,-18,-4,12,24,34]:[-24,-7,16,30];
+  var six=f.anomaly==='extra_limbs',legs=six?[-33,-20,-7,6,19,32]:[-24,-7,16,30],lw=six?6.5:8;
   g.fillStyle=coat.v;
-  legs.forEach(function(lx){g.beginPath();g.roundRect(lx,13,8,29,3);g.fill();g.stroke();g.fillStyle='#302b27';g.fillRect(lx,35,8,7);g.fillStyle=coat.v});
+  legs.forEach(function(lx){g.beginPath();g.roundRect(lx,13,lw,six?31:29,3);g.fill();g.stroke();g.fillStyle='#302b27';g.fillRect(lx,six?37:35,lw,7);g.fillStyle=coat.v});
   g.beginPath();g.ellipse(-3,0,41,25,0,0,Math.PI*2);g.fillStyle=coat.v;g.fill();g.stroke();
-  g.fillStyle=coat.s;
-  var pr=mulberry32(6000+f.pattern*77+f.coat*9),spots=2+(f.pattern%4);
-  for(var i=0;i<spots;i++){var px=-28+pr()*52,py=-13+pr()*24,rx=6+pr()*10,ry=4+pr()*8;g.save();g.translate(px,py);g.rotate(pr()*2);g.beginPath();g.ellipse(0,0,rx,ry,0,0,Math.PI*2);g.fill();g.restore()}
+  drawPattern(g,f.pattern,coat,s);
+  // neckwear hangs on the neck and is drawn BEFORE the head, so the snout, a grin or a beak always sits on top of it
+  if(f.acc==='bell'){ // leather strap + a big brass bell with a rim, clapper and shine
+    g.fillStyle='#7a4a24';g.beginPath();g.roundRect(9,14,28,7,3);g.fill();g.stroke();
+    g.fillStyle='#ffd23f';g.beginPath();g.moveTo(16,20);g.lineTo(28,20);g.quadraticCurveTo(30,30,36,39);g.lineTo(8,39);g.quadraticCurveTo(14,30,16,20);g.closePath();g.fill();g.stroke();
+    g.fillStyle='#e0a91f';g.beginPath();g.roundRect(6,37,32,5,2);g.fill();g.stroke();
+    g.fillStyle='#151515';g.beginPath();g.arc(22,44,3.2,0,Math.PI*2);g.fill();
+    g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=2.2/s;g.beginPath();g.moveTo(18.5,24);g.quadraticCurveTo(17,30,13.5,35);g.stroke();
+    g.strokeStyle='#161616';g.lineWidth=3/s;
+  }
+  if(f.acc==='ribbon'){ // a big pink bow: two loops, a knot and two tails
+    g.save();g.translate(12,24);g.scale(.88,.88);g.translate(-37,-24);g.fillStyle='#ff5fa7';
+    g.beginPath();g.moveTo(34,30);g.lineTo(29,42);g.lineTo(32,40);g.lineTo(34.5,43);g.lineTo(36,31);g.closePath();g.fill();g.stroke();
+    g.beginPath();g.moveTo(40,30);g.lineTo(46,42);g.lineTo(43,40);g.lineTo(40.5,43);g.lineTo(38,31);g.closePath();g.fill();g.stroke();
+    g.beginPath();g.moveTo(37,24);g.quadraticCurveTo(25,11,18,16);g.quadraticCurveTo(14,25,19,32);g.quadraticCurveTo(27,35,37,24);g.closePath();g.fill();g.stroke();
+    g.beginPath();g.moveTo(37,24);g.quadraticCurveTo(49,11,56,16);g.quadraticCurveTo(60,25,55,32);g.quadraticCurveTo(47,35,37,24);g.closePath();g.fill();g.stroke();
+    g.strokeStyle='rgba(150,20,80,.6)';g.lineWidth=1.6/s;g.beginPath();g.moveTo(31,22);g.quadraticCurveTo(24,21,21,24);g.moveTo(43,22);g.quadraticCurveTo(50,21,53,24);g.stroke();
+    g.fillStyle='#fff';[[22,20],[25,29],[52,20],[49,29]].forEach(function(d){g.beginPath();g.arc(d[0],d[1],1.6,0,Math.PI*2);g.fill()});
+    g.strokeStyle='#161616';g.lineWidth=3/s;g.fillStyle='#e23f8a';g.beginPath();g.ellipse(37,24,4.5,5,0,0,Math.PI*2);g.fill();g.stroke();
+    g.restore();
+  }
   var blink=!portrait&&((now+cow.phase*1000)%3800<110);
   if(f.anomaly==='toucan'){
     g.fillStyle='#1e2229';g.beginPath();g.ellipse(32,-6,18,19,0,0,Math.PI*2);g.fill();g.stroke();
@@ -1186,10 +1244,7 @@ function drawCow(g,cow,x,y,s,now,portrait){
     g.fillStyle='#ffe600';g.beginPath();g.arc(71,3,7,0,Math.PI*2);g.fill();
     g.fillStyle='#00bcd4';g.fillRect(34,-4,6,10);
     if(f.horns){ // horns must show on every head shape, or a horned and a hornless cow would look identical
-      g.fillStyle='#f5cf73';g.strokeStyle='#151515';g.lineWidth=2.6/s;
-      g.beginPath();g.moveTo(23,-21);g.quadraticCurveTo(15,-38,27,-34);g.quadraticCurveTo(22,-30,29,-23);g.closePath();g.fill();g.stroke();
-      g.beginPath();g.moveTo(38,-23);g.quadraticCurveTo(46,-38,35,-35);g.quadraticCurveTo(40,-30,33,-21);g.closePath();g.fill();g.stroke();
-      g.lineWidth=3/s;
+      drawHorn(g,24,-20,-1,.85,s);drawHorn(g,39,-21,1,.85,s);g.lineWidth=3/s;g.strokeStyle='#161616';
     }
   }else if(f.anomaly==='wolf'){
     g.fillStyle='#5a5d64';g.beginPath();g.ellipse(32,-4,20,18,0,0,Math.PI*2);g.fill();g.stroke();
@@ -1200,48 +1255,36 @@ function drawCow(g,cow,x,y,s,now,portrait){
     g.fillStyle='#ffc107';g.beginPath();g.arc(32,-8,3.5,0,Math.PI*2);g.fill();
     g.fillStyle='#000';g.beginPath();g.arc(32,-8,1.6,0,Math.PI*2);g.fill();
     if(f.horns){
-      g.fillStyle='#f5cf73';g.strokeStyle='#151515';
-      g.beginPath();g.moveTo(17,-12);g.quadraticCurveTo(2,-16,6,-30);g.quadraticCurveTo(9,-21,22,-18);g.closePath();g.fill();g.stroke();
-      g.beginPath();g.moveTo(47,-11);g.quadraticCurveTo(62,-15,58,-29);g.quadraticCurveTo(55,-20,43,-17);g.closePath();g.fill();g.stroke();
+      drawHorn(g,19,-13,-1,.85,s);drawHorn(g,46,-13,1,.85,s);g.lineWidth=3/s;g.strokeStyle='#161616';
     }
   }else{
     g.fillStyle=coat.v;g.beginPath();g.ellipse(35,-3,23,25,0,0,Math.PI*2);g.fill();g.stroke();
     var ear=portrait?0:Math.max(0,Math.sin(now*.004+cow.phase*3)-.92)*3;
     g.beginPath();g.ellipse(18,-18,12,6,-.35-ear,0,Math.PI*2);g.fill();g.stroke();
     g.beginPath();g.ellipse(52,-18,12,6,.35,0,Math.PI*2);g.fill();g.stroke();
-    if(f.horns){
-      g.fillStyle='#f5cf73';
-      g.beginPath();g.moveTo(24,-24);g.quadraticCurveTo(19,-40,30,-35);g.quadraticCurveTo(25,-31,30,-24);g.fill();g.stroke();
-      g.beginPath();g.moveTo(43,-24);g.quadraticCurveTo(50,-40,40,-36);g.quadraticCurveTo(45,-31,38,-24);g.fill();g.stroke();
-    }
+    if(f.horns){drawHorn(g,26,-22,-1,.92,s);drawHorn(g,44,-22,1,.92,s);g.lineWidth=3/s;g.strokeStyle='#161616'}
     g.fillStyle='#f3a6a5';g.beginPath();g.ellipse(38,8,15,11,0,0,Math.PI*2);g.fill();g.stroke();
     g.fillStyle='#1a1a1a';g.beginPath();g.arc(33,8,2,0,Math.PI*2);g.arc(43,8,2,0,Math.PI*2);g.fill();
     if(f.anomaly==='glowing_eyes'){
       var pulse=.7+Math.sin(now*.01)*.3;
-      g.fillStyle='#00ffea';g.shadowColor='#00ffea';g.shadowBlur=8*pulse;
-      g.beginPath();g.arc(30,-7,4,0,Math.PI*2);g.arc(44,-7,4,0,Math.PI*2);g.fill();g.shadowBlur=0;
+      g.fillStyle='#151515';g.beginPath();g.ellipse(30,-7,6,5.4,0,0,Math.PI*2);g.ellipse(44,-7,6,5.4,0,0,Math.PI*2);g.fill();
+      g.fillStyle='#00ffea';g.shadowColor='#00ffea';g.shadowBlur=12*pulse;
+      g.beginPath();g.arc(30,-7,4.2,0,Math.PI*2);g.arc(44,-7,4.2,0,Math.PI*2);g.fill();g.shadowBlur=0;
+      g.fillStyle='#fff';g.beginPath();g.arc(31,-8,1.3,0,Math.PI*2);g.arc(45,-8,1.3,0,Math.PI*2);g.fill();
     }else if(blink){
       g.lineWidth=2.4/s;g.beginPath();g.moveTo(27,-7);g.lineTo(33,-7);g.moveTo(41,-7);g.lineTo(47,-7);g.stroke();g.lineWidth=3/s;
     }else{
       g.beginPath();g.arc(30,-7,2.4,0,Math.PI*2);g.arc(44,-7,2.4,0,Math.PI*2);g.fill();
     }
     if(f.anomaly==='glowing_teeth'){
-      g.fillStyle='#151515';g.fillRect(30,13,16,7);
-      g.fillStyle='#76ff03';g.shadowColor='#76ff03';g.shadowBlur=6;
-      for(var t=0;t<5;t++){g.beginPath();g.moveTo(31+t*3,13);g.lineTo(32.5+t*3,18);g.lineTo(34+t*3,13);g.fill()}
+      g.fillStyle='#151515';g.beginPath();g.moveTo(25,11);g.quadraticCurveTo(38,25,51,11);g.quadraticCurveTo(38,17,25,11);g.closePath();g.fill();
+      g.beginPath();g.ellipse(38,15,12,5.5,0,0,Math.PI);g.fill();
+      g.fillStyle='#76ff03';g.shadowColor='#76ff03';g.shadowBlur=8;
+      for(var t=0;t<7;t++){var tx=28+t*3.4;g.beginPath();g.moveTo(tx,12.5);g.lineTo(tx+1.7,17.5);g.lineTo(tx+3.4,12.5);g.fill();g.beginPath();g.moveTo(tx+1,19.5);g.lineTo(tx+2.6,15.5);g.lineTo(tx+4.2,19.5);g.fill()}
       g.shadowBlur=0;
     }
   }
   g.strokeStyle='#161616';g.lineWidth=3/s;
-  if(f.acc==='bell'){
-    g.fillStyle='#ffe45b';g.fillRect(19,21,34,5);g.strokeRect(19,21,34,5);
-    g.beginPath();g.moveTo(31,26);g.lineTo(44,26);g.lineTo(41,38);g.lineTo(34,38);g.closePath();g.fill();g.stroke();
-  }
-  if(f.acc==='ribbon'){
-    g.fillStyle='#ff5fa7';g.beginPath();
-    g.moveTo(29,18);g.lineTo(17,14);g.lineTo(20,28);g.lineTo(34,22);g.lineTo(46,29);g.lineTo(48,15);g.lineTo(35,18);
-    g.closePath();g.fill();g.stroke();
-  }
   if(glitch){
     g.fillStyle='rgba(255,255,255,0.4)';
     for(var sl=0;sl<2;sl++)g.fillRect(-45,-30+Math.random()*60,90,2);
@@ -3014,7 +3057,7 @@ function dexSelect(f){dexEntry(f)[1]++;persist()}
 function dexAbduct(f){dexEntry(f)[2]++}
 
 var DEX_COAT=['Ivory','Cocoa','Midnight','Biscuit','Slate'];
-var DEX_PAT=['Speckled','Blotched','Dappled','Freckled','Patchwork','Splotched','Marbled','Mottled','Pied','Brindled','Starry','Peppered','Smudged','Inkdrop'];
+var DEX_PAT=['Patched','Saddled','Belted','Polka','Bullseye','Tiger','Slashed','Hearted','Starred','Half-coat','Speckled','Ringed','Checkered','Bolted'];
 var DEX_NOUN_H=['Steer','Hornling','Bramblehorn'],DEX_NOUN_P=['Heifer','Grazer','Moo-Bun'];
 var DEX_NOUN_A={glowing_eyes:'Lantern-Eye',glowing_teeth:'Grinner',extra_limbs:'Six-Hoof',toucan:'Toucow',wolf:'Werecalf'};
 var DEX_FLAVOR=["Has never once been late to the trough.","Chews clover with suspicious focus.","Insists the fence is a suggestion.","Once stared down a tractor. Won.","Moos in a slightly minor key.","Believes it is a very large dog.","Collects interesting pebbles. Shows no one.","Can hear a feed bag open from two fields away.","Naps standing up, dreams lying down.","Rumoured to have a second, smaller moo.","Gets along with everyone except the weathervane.","Keeps perfect time with the church bells.","Has strong opinions about clover versus alfalfa.","Allegedly winked at the mailman.","Will not be photographed from the left.","Hums when nobody is watching.","Faces east every morning. Nobody asked it to.","Walks the fence line twice a night.","Unbothered. Moisturised. Grazing.","Was here before the farm. Probably.","Knows exactly where the gate code is written.","Sneezes like a trumpet.","Polite to crows, rude to geese.","Always seems to be standing slightly closer than before."];
@@ -3173,7 +3216,7 @@ var B={W:0,H:0,dpr:1};
 var boss={active:false,elapsed:0,parts:[],exploding:false,explodeT:0,particles:[],floaters:[],shake:0,flash:0,flashColor:'#fff',hitstop:0,lastFrame:0,shudder:0,ended:false};
 function resizeBoss(){var W=bossCanvas.clientWidth,H=bossCanvas.clientHeight;if(!W||!H)return;B.W=W;B.H=H;B.dpr=Math.min(2.5,devicePixelRatio||1);bossCanvas.width=Math.round(W*B.dpr);bossCanvas.height=Math.round(H*B.dpr)}
 /* Boss tuning. These defaults ARE the real game; the Boss Lab only changes them while you test. */
-var BT_DEFAULT={time:90,stageCows:10,mass:1.15,grow:.7,cow:1.15,sway:1,drift:1,driftSpeed:1,hint:10,pad:14,count:10,order:'strict',flesh:true,invincible:false,speed:1,hitboxes:false,coach:false,cinematics:true,sanity:6};
+var BT_DEFAULT={roundBase:30,lossEarly:1,lossLate:2,stageCows:10,mass:1.15,grow:.7,cow:1.15,sway:1,drift:1,driftSpeed:1,hint:10,pad:14,count:10,order:'strict',flesh:true,invincible:false,speed:1,hitboxes:false,coach:false,cinematics:true,sanity:6};
 var BT=JSON.parse(JSON.stringify(BT_DEFAULT));
 var LAB={on:false,wrong:0,cuts:[],runs:0};
 function bossFeat(f){return{coat:f.coat,pattern:f.pattern,horns:f.horns,acc:f.acc,flip:f.flip,anomaly:f.anomaly||'none'}}
@@ -3184,6 +3227,9 @@ function buildBossParts(){
   boss.targets=src.map(function(f,i){return{f:bossFeat(f),i:i,off:false}});
   boss.stageIdx=0;boss.parts=[];boss.phase='idle';boss.phaseT=0;
 }
+// Each round has its own clock, so clearing rounds can never leave you mathematically out of time.
+// Round 1 = 29s (30 − 1); rounds 1–5 lose 1s each, rounds 6–10 lose 2s each → 29,28,27,26,25,23,21,19,17,15.
+function roundLimit(i){var r=i+1,early=Math.min(r,5),late=Math.max(0,r-5);return Math.max(5,BT.roundBase-early*BT.lossEarly-late*BT.lossLate)}
 function bossCurrent(){return boss.targets&&boss.targets[boss.stageIdx]||null}
 function bossCorrect(){for(var i=0;i<boss.parts.length;i++)if(boss.parts[i].correct)return boss.parts[i];return null}
 function ringOffsets(n,rng){
@@ -3210,7 +3256,7 @@ function spawnStage(){
   for(var g=0;feats.length<N&&g<400;g++){var d=stageDecoy(t.f,boss.stageIdx,rng),k=comboKey(d);if(used[k])continue;used[k]=1;feats.push(d)}
   var offs=ringOffsets(feats.length,rng);for(var i=offs.length-1;i>0;i--){var j=Math.floor(rng()*(i+1)),tmp=offs[i];offs[i]=offs[j];offs[j]=tmp}
   boss.parts=feats.map(function(f,i){return{f:f,correct:i===0,ox:offs[i][0],oy:offs[i][1],born:i*.05,off:false,offT:0,popped:false,popT:0,alarm:0,rx:0,ry:0,rs:1,vx:0,vy:0,rot:0,i:i}});
-  boss.phase='grow';boss.phaseT=0;boss.curSince=boss.elapsed;boss.hinted=false;
+  boss.phase='grow';boss.phaseT=0;boss.curSince=boss.elapsed;boss.hinted=false;boss.roundT=0;boss.lastTick=99;
   bossMusicStage(boss.stageIdx);
   sfx.groan();tone(60,0,.7,'sawtooth',.03,110);
 }
@@ -3236,9 +3282,10 @@ function renderBossPosters(){
 function updateBossHud(){
   var left=boss.targets.filter(function(p){return!p.off}).length;
   $('bossLinks').textContent=left+' LEFT';
-  var rem=Math.max(0,BT.time-boss.elapsed),p=rem/BT.time;
+  var lim=roundLimit(boss.stageIdx||0),rem=Math.max(0,lim-(boss.roundT||0)),p=rem/lim;
   $('bossFill').style.width=(p*100)+'%';$('bossHead').style.left=clamp(p*$('bossFuse').clientWidth,16,$('bossFuse').clientWidth-$('bossTime').offsetWidth-34)+'px';$('bossTime').textContent=rem.toFixed(1);
-  $('bossFuse').classList.toggle('crit',rem<=10&&boss.active);
+  $('bossFuse').classList.toggle('crit',rem<=5&&boss.active&&boss.phase==='live');
+  $('bossLinks').textContent='ROUND '+Math.min(boss.targets.length,(boss.stageIdx||0)+1)+' / '+boss.targets.length+' · '+lim+'s';
 }
 function startBoss(){
   $('revealOv').hidden=true;boss.losing=null;bossEl.classList.remove('losing');bossEl.hidden=false;state.phase='boss';
@@ -3257,7 +3304,7 @@ function startBoss(){
 }
 function bossLayout(){
   var prog=boss.targets&&boss.targets.length?boss.stageIdx/boss.targets.length:0;
-  var p=Math.min(1,Math.max(boss.elapsed/BT.time,prog)),u=Math.min(B.W/520,B.H/600),S=u*(.72+p*BT.grow)*BT.mass;
+  var p=Math.min(1,prog+(boss.targets&&boss.targets.length?Math.min(1,(boss.roundT||0)/roundLimit(boss.stageIdx||0))/boss.targets.length:0)),u=Math.min(B.W/520,B.H/600),S=u*(.72+p*BT.grow)*BT.mass;
   // the central node drifts around the void on slow overlapping waves (only while the fight is live)
   var t=performance.now()*.001,m=boss.active||boss.exploding?boss.elapsed:0;
   var dm=m*BT.driftSpeed,dA=BT.drift;var cx=B.W/2+(Math.sin(dm*.45)*.26+Math.sin(dm*1.15+1)*.05)*B.W*(1-p*.4)*dA,cy=B.H*.5+(Math.sin(dm*.37+1.7)*.17+Math.cos(dm*.9)*.04)*B.H*(1-p*.4)*dA;
@@ -3274,10 +3321,10 @@ function bossFrame(ts){
     boss.phaseT+=dt*BT.speed;
     if(boss.phase==='grow'&&boss.phaseT>.75){boss.phase='live';boss.phaseT=0}
     if(boss.phase==='clear'&&boss.phaseT>1.05)nextStage();
-    if(boss.phase==='live')boss.elapsed+=dt*BT.speed; // the clock only runs while a herd is on the tentacles
-    var rem=BT.time-boss.elapsed;bossMusicLow(rem<=10);
-    if(rem<=10){var ct=Math.ceil(rem);if(ct!==boss.lastTick){boss.lastTick=ct;sfx.tick()}}
-    if(rem<=0){bossLose();requestAnimationFrame(bossFrame);return}
+    if(boss.phase==='live'){boss.elapsed+=dt*BT.speed;boss.roundT=(boss.roundT||0)+dt*BT.speed} // the round clock only runs while a herd is on the tentacles
+    var rem=roundLimit(boss.stageIdx)-(boss.roundT||0);bossMusicLow(boss.phase==='live'&&rem<=6);
+    if(boss.phase==='live'&&rem<=5){var ct=Math.ceil(rem);if(ct!==boss.lastTick){boss.lastTick=ct;sfx.tick()}}
+    if(boss.phase==='live'&&rem<=0){bossLose();requestAnimationFrame(bossFrame);return}
     updateBossHud();
   }
   boss.particles.forEach(function(p){p.x+=p.vx*real;p.y+=p.vy*real;p.vy+=(p.kind==='bone'||p.kind==='gib'?420:80)*real;p.vx*=.99;p.life-=real;if(p.spin)p.r=(p.r||0)+p.spin*real});boss.particles=boss.particles.filter(function(p){return p.life>0});
@@ -3703,7 +3750,9 @@ introEl.addEventListener('pointerdown',function(e){
    over and over, with live tuning. Nothing here runs in normal play. */
 var LAB_KEY='spotTheCow.bossLab';
 var LAB_SLIDERS=[
-  {k:'time',l:'Fight length',u:'s',min:20,max:150,step:5},
+  {k:'roundBase',l:'Round timer base (round 1 = base − loss)',u:'s',min:10,max:60,step:1},
+  {k:'lossEarly',l:'Seconds lost per round, rounds 1–5',u:'s',min:0,max:5,step:.5},
+  {k:'lossLate',l:'Seconds lost per round, rounds 6–10',u:'s',min:0,max:5,step:.5},
   {k:'count',l:'Rounds (cows to cut)',u:'',min:3,max:10,step:1,restart:1},
   {k:'stageCows',l:'Cows per round',u:'',min:4,max:14,step:1},
   {k:'sanity',l:'Starting sanity',u:'',min:1,max:6,step:1,restart:1},
@@ -3748,8 +3797,8 @@ function labBuild(){
 }
 function labStats(){
   if(!LAB.on)return;
-  var rem=Math.max(0,BT.time-boss.elapsed),cut=boss.targets.filter(function(p){return p.off}).length,cs=LAB.cuts,avg=cs.length?cs.reduce(function(a,b){return a+b},0)/cs.length:0;
-  var rows=[['Time left',rem.toFixed(1)+'s'],['Sanity',state.sanity+' / 6'+(BT.invincible?' (invincible)':'')],['Cut',cut+' / '+boss.targets.length],['Wrong taps',LAB.wrong],['Avg time per cut',cs.length?avg.toFixed(1)+'s':'–'],['Slowest cut',cs.length?Math.max.apply(null,cs).toFixed(1)+'s':'–']];
+  var rem=Math.max(0,roundLimit(boss.stageIdx||0)-(boss.roundT||0)),cut=boss.targets.filter(function(p){return p.off}).length,cs=LAB.cuts,avg=cs.length?cs.reduce(function(a,b){return a+b},0)/cs.length:0;
+  var rows=[['Round',Math.min(boss.targets.length,(boss.stageIdx||0)+1)+' / '+boss.targets.length+' ('+roundLimit(boss.stageIdx||0)+'s)'],['Round time left',rem.toFixed(1)+'s'],['Total time',boss.elapsed.toFixed(1)+'s'],['Sanity',state.sanity+' / 6'+(BT.invincible?' (invincible)':'')],['Cut',cut+' / '+boss.targets.length],['Wrong taps',LAB.wrong],['Avg time per cut',cs.length?avg.toFixed(1)+'s':'–'],['Slowest cut',cs.length?Math.max.apply(null,cs).toFixed(1)+'s':'–']];
   $('labStats').innerHTML=rows.map(function(r){return'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>'}).join('');
 }
 function labStart(){
@@ -3820,6 +3869,13 @@ window.__spotCowDebug={
   startBoss:function(){intro.done=true;introEl.hidden=true;startBoss()},
   delinkOne:function(){var c=bossCorrect();if(c&&boss.phase==='live')delink(c,c.rx,c.ry)},
   loseBoss:function(){bossLose()},
+  partsSheet:function(){var cols=6,W=170,H=125,list=[],an=['none','glowing_eyes','glowing_teeth','extra_limbs','toucan','wolf'];
+    [0,2,3].forEach(function(c){[false,true].forEach(function(h){['none','bell','ribbon'].forEach(function(a){list.push({coat:c,pattern:7,horns:h,acc:a,flip:false,anomaly:'none',lab:(h?'horns':'no horns')+' · '+a})})})});
+    an.forEach(function(x){[false,true].forEach(function(h){list.push({coat:1,pattern:3,horns:h,acc:h?'bell':'ribbon',flip:false,anomaly:x,lab:x+(h?' +horns':'')})})});
+    var cv=document.createElement('canvas');cv.width=W*cols;cv.height=H*Math.ceil(list.length/cols);var g=cv.getContext('2d');g.fillStyle='#fffdf4';g.fillRect(0,0,cv.width,cv.height);
+    list.forEach(function(f,i){var x=(i%cols)*W,y=Math.floor(i/cols)*H;drawCow(g,{f:f,hop:0,phase:0},x+78,y+72,1.05,0,true);g.fillStyle='#151515';g.font='11px sans-serif';g.fillText(f.lab,x+4,y+12)});
+    return cv.toDataURL()},
+  patternSheet:function(){var cv=document.createElement("canvas"),W=150,H=105;cv.width=W*14;cv.height=H*5;var g=cv.getContext("2d");g.fillStyle="#fffdf4";g.fillRect(0,0,cv.width,cv.height);for(var c=0;c<5;c++)for(var p=0;p<14;p++){drawCow(g,{f:{coat:c,pattern:p,horns:false,acc:"none",flip:false,anomaly:"none"},hop:0,phase:0},p*W+70,c*H+55,1.15,0,true);g.fillStyle="#151515";g.font="11px sans-serif";if(c===0)g.fillText(PATTERN_NAMES[p],p*W+6,12)}return cv.toDataURL()},
   delinkAll:function(){bossForceWin()},
   forceNinja:function(on){window.__forceNinja=!!on},
   popClone:function(){var c=state.cows.filter(function(x){return x.clone&&!x.found})[0];if(c)clonePicked(c)},
